@@ -12,10 +12,12 @@ import 'package:ar_flutter_plugin_plus/models/ar_node.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3, Vector4;
 
+import 'image_test.dart';
+
 const duckUrl =
     'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb';
 
-void main() => runApp(const MaterialApp(home: ArTestPage()));
+void main() => runApp(const MaterialApp(home: ImageTestPage()));
 
 class ArTestPage extends StatefulWidget {
   const ArTestPage({super.key});
