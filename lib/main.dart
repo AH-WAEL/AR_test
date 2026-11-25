@@ -28,6 +28,11 @@ class _ArTestPageState extends State<ArTestPage> {
   ARObjectManager? _objects;
   ARAnchorManager? _anchors;
   final List<ARAnchor> _placed = [];
+
+  // Diagnostic: each tap places a duck at the next scale in this list.
+  final List<double> _scales = [0.2, 0.05, 0.01, 0.002];
+  int _tapCount = 0;
+
   String _status = 'Move the phone slowly over a table or the floor';
 
   @override
@@ -60,27 +65,35 @@ class _ArTestPageState extends State<ArTestPage> {
       setState(() => _status = 'No surface detected there yet, keep scanning');
       return;
     }
-    final anchor = ARPlaneAnchor(
-      transformation: planeHits.first.worldTransform,
-    );
+
+    final hit = planeHits.first;
+    final usedScale = _scales[_tapCount % _scales.length];
+    final dist = hit.distance.toStringAsFixed(2);
+
+    final anchor = ARPlaneAnchor(transformation: hit.worldTransform);
     final anchorOk = await _anchors?.addAnchor(anchor) ?? false;
     if (!anchorOk) {
-      setState(() => _status = 'Could not add anchor');
+      setState(() => _status = 'Could not add anchor (hit at $dist m)');
       return;
     }
     _placed.add(anchor);
+
     final node = ARNode(
       type: NodeType.webGLB,
       uri: duckUrl,
-      scale: Vector3(0.2, 0.2, 0.2),
+      scale: Vector3.all(usedScale),
       position: Vector3(0, 0, 0),
       rotation: Vector4(1, 0, 0, 0),
     );
     final nodeOk = await _objects?.addNode(node, planeAnchor: anchor) ?? false;
-    debugPrint('AR place: anchor=$anchorOk node=$nodeOk');
+
+    _tapCount++;
+    debugPrint(
+      'AR place: anchor=$anchorOk node=$nodeOk scale=$usedScale distance=$dist',
+    );
     setState(
       () => _status = nodeOk
-          ? 'Placed ${_placed.length} duck(s). Walk around it.'
+          ? 'Duck #${_placed.length}: scale $usedScale, hit at $dist m'
           : 'Could not load the model (check internet)',
     );
   }
@@ -90,7 +103,8 @@ class _ArTestPageState extends State<ArTestPage> {
       _anchors?.removeAnchor(a);
     }
     _placed.clear();
-    setState(() => _status = 'Cleared');
+    _tapCount = 0;
+    setState(() => _status = 'Cleared. Next tap uses scale ${_scales[0]}');
   }
 
   @override
@@ -101,7 +115,7 @@ class _ArTestPageState extends State<ArTestPage> {
         children: [
           ARView(
             onARViewCreated: _onARViewCreated,
-            planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
+            planeDetectionConfig: PlaneDetectionConfig.horizontal,
           ),
           Positioned(
             top: 12,
